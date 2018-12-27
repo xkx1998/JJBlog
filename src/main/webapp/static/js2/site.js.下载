@@ -1,0 +1,1182 @@
+﻿if (location.protocol == 'http:') { location.href = location.href.replace('http:', 'https:'); };
+var ServerSiteUrl = '//' + window.location.host + '/';
+var TmpUrl = 'https://' + window.location.host + '/';
+var nonsslTmpUrl = 'http://' + window.location.host + '/';
+var AjaxUrl = "";
+var AjaxType = "";
+var AjaxDataType = 'json';
+var Url = '../';
+var pathUrl = '/uploads/vip/media/';
+
+var IpCountryStr = null;
+function IpCountryCheck(fnIpCountry) {
+	if (IpCountryStr != null) {
+		fnIpCountry && fnIpCountry(IpCountryStr);
+		return;
+	}
+
+	$.ajax({
+		url: ServerSiteUrl + 'Ajax/IpCountry.ashx',
+		cache: false,
+		type: 'GET',
+		success: function (Country) {
+			IpCountryStr = Country;
+			fnIpCountry && fnIpCountry(IpCountryStr);
+		},
+		error: function (errorData) {
+			dialog('網路傳輸錯誤，請聯絡系統工程師!');
+		}
+	});
+};
+
+/*********************************
+*取得網址參數
+**********************************/
+function getParameterByName(name) {
+	name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+	var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+	return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+};
+
+/*********************************
+*登入LOGIN SESSION 判斷
+**********************************/
+var MEMBER = null;
+var LOADING = false;
+
+function LoginCheck(fnSuccess, fnError) {
+	if (MEMBER != null) {
+		fnSuccess && fnSuccess(MEMBER);
+		return;
+	}
+	if (LOADING) {
+		setTimeout(function () {
+			LoginCheck(fnSuccess, fnError);
+		}, 600);
+		return;
+	}
+	LOADING = true;
+
+	$.getScript('/assets/plugins/jquery-cookie/jquery.cookie.js', function () {
+		if (window.location.href.indexOf('returnurl=rcactivity') >= 0) {
+			$.cookie('returnurl', 'rcactivity', {
+				path: '/'
+			});
+			$.cookie('joinvipurl', '/member/member_vip_step01.html', {
+				path: '/'
+			});
+		};
+		$.ajax({
+			url: ServerSiteUrl + 'Ajax/Member.ashx?&_=' + new Date().getTime(),
+			type: 'GET',
+			dataType: AjaxDataType,
+			success: function (data) {
+				if (data && data.ok) {
+					MEMBER = data.result;
+					fnSuccess && fnSuccess(MEMBER);
+					var tmpAccountLi = $('.menubox .topbox .accountbox .accountlist li');
+					tmpAccountLi.css('display', 'none').parent().find('li#logoutbox').css('display', 'block').find('#name').html(MEMBER.surname).parent().find('.img').css('background-image', 'url(' + MEMBER.graph + ')');
+					if (data.result.isVip == false) {
+						var tmpvipsrc = location.pathname;
+						if (tmpvipsrc.indexOf("/vip/") >= 0) {
+							//alertify.alert(document.title,'您的權限不足。請申請成為VIP會員');
+							//location.href = '/';
+							dialog('您的權限不足。請申請成為VIP會員');
+						}
+
+						$(document).on('click', '.btn-JJLIVE', function () {
+							dialogreturnfalse('您的權限不足。請申請成為VIP會員');
+						});
+
+						if ($.cookie('returnurl') == 'rcactivity' && $.cookie('joinvipurl')) {
+							$.removeCookie('joinvipurl');
+							window.location.href = '/member/vipreg.html';
+						}
+					} else {
+						$('#wapper').removeClass('invisible');
+						$(document).on('click', '.btn-JJLIVE', function () {
+							window.location.href = " http://rcshow.tv/activity/jjlin/";
+						});
+
+						if ($.cookie('returnurl') == 'rcactivity') {
+							$.removeCookie('returnurl');
+							$.ajax({
+								url: '/api/rc/token.ashx?&_=' + new Date().getTime(),
+								type: "GET",
+								dataType: AjaxDataType,
+								timeout: 15000,
+								success: function (result) {
+									if (result.ok == true) {
+										$.removeCookie('returnurl');
+										window.location.href = result.result.Link;
+									}
+								},
+								error: function (xhr, ajaxOptions, thrownError) {
+									//alert(xhr.status); 
+									//alert(thrownError); 
+								}
+							});
+						}
+					}
+				} else if (data && data.msg) {
+					$('#logoutbox').remove();
+					$('.menubox .topbox .accountbox .accountlist li').css('display', 'inline-block');
+					//fnError && fnError("請先登入會員，或註冊會員使用");
+
+					var html = '<div class="container-fluid">' +
+                        '<div class="row">' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                                    '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                                    '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                                '</div>' +
+                                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                                    '<p style="margin:15px 0;">此功能僅開放給林距離VIP會員。請先登入會員，或註冊會員使用。</p>' +
+                                '</div>' +
+								'<div class="col-md-12 col-sm-12 col-xs-12 nopadding btnbox"><a href="../index.html?login=viplogin">登入林距離會員</a></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+					bootbox.dialog({
+						message: html,
+						title: '',
+						buttons: {
+							success: {
+								label: "確定",
+								className: "btn-success",
+								callback: function () { }
+							},
+							onEscape: function () { location.href = '/' }
+						}
+					});
+					$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+					$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+					$('.modal-footer').css({ 'display': 'none' });
+					//return false;
+				} else {
+					dialog('伺服器錯誤，請聯絡系統工程師!');
+				}
+				LOADING = false;
+			},
+			error: function (errorData) {
+				dialog('網路傳輸錯誤，請聯絡系統工程師!');
+			}
+		});
+	});
+};
+function navbar() {
+	$('.menubox .topbox .logobox a').attr('href', TmpUrl);
+	var source = $("#navbar").html();
+	var template = Handlebars.compile(source);
+	var context = {
+		navbarlist: [
+            { link: TmpUrl + "news/news.html", listname: "NEWS" },
+            { link: TmpUrl + "social/social.html", listname: "SOCIAL" },
+            { link: TmpUrl + "discography/discography.html", listname: "DISCOGRAPHY" },
+            { link: TmpUrl + "video/video.html", listname: "VIDEO" },
+            { link: TmpUrl + "photos/photos.html", listname: "PHOTOS" },
+            { link: TmpUrl + "vip/vip_diary.html", listname: "VIP" },
+            { link: TmpUrl + "chatroom/chatroom.html", listname: "LIVE", target: '' },
+            { link: TmpUrl + "party/party.html", listname: "PARTY", target: '' },
+			//{ link: "javascript:void(0)", listname: "PARTY", target: '' },		
+            { link: TmpUrl + "calendar/calendar.html", listname: "CALENDAR", target: '' },
+            { link: TmpUrl + "static/biography.html", listname: "BIO", target: '' },
+            { link: TmpUrl + "static/link.html", listname: "LINK", target: '' }
+		]
+	};
+	var contextrwd = {
+		navbarlist: [
+            { link: TmpUrl + "news/news.html", listname: "NEWS 新聞" },
+            { link: TmpUrl + "social/social.html", listname: "SOCIAL 社群" },
+            { link: TmpUrl + "discography/discography.html", listname: "DISCOGRAPHY 專輯" },
+            { link: TmpUrl + "video/video.html", listname: "VIDEO 影音" },
+            { link: TmpUrl + "photos/photos.html", listname: "PHOTOS 相簿" },
+            { link: TmpUrl + "vip/vip_diary.html", listname: "VIP 林距離" },
+            { link: TmpUrl + "chatroom/chatroom.html", listname: "LIVE 與JJ對話" },
+            { link: TmpUrl + "party/party.html", listname: "PARTY 活動" },
+			//{ link: "javascript:void(0)", listname: "PARTY 活動" },
+            { link: TmpUrl + "static/biography.html", listname: "BIO 關於JJ" },
+            { link: TmpUrl + "calendar/calendar.html", listname: "CALENDAR 行事曆" },
+            { link: TmpUrl + "static/link.html", listname: "LINK 連結" }
+		]
+	};
+
+	Handlebars.registerHelper('list', function (items, options) {
+		var Tmpstr = '';
+		var Tmpresult = '';
+		for (var i = 0; i < items.length; i++) {
+			Tmpstr = '<li>' + options.fn(items[i]) + '</li>';
+			Tmpresult = Tmpresult + Tmpstr;
+		}
+		return Tmpresult;
+	});
+	$('.navbar ul').html(template(context));
+	$('.menubox .topbox .accountbox .navbar-rwd').html(template(contextrwd));
+
+	/*$(document).on('click', '.menubox .navbar ul li:nth-child(8)', function () {
+		dialog('本活動已結束，<br />若已搶得， 請至 [<a href="../member/member_apply.html" style="font-weight:bold;text-decoration:none;">會員中心-報名紀錄</a>] 頁面，點選 [前往付款] 鈕，操作付款流程 !');
+	});*/
+};
+function accountbox() {
+	var source = $("#accountlist").html();
+	var template = Handlebars.compile(source);
+	var context = {
+		register: TmpUrl + 'member/register.html',
+		//facbooklogin: 'https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=http%3A%2F%2Fwww.jjlin-auth.com%2Ffacebook%2FLogin.html&scope=email%2Cuser_about_me%2Cuser_activities%2Cuser_birthday%2Cuser_checkins%2Cuser_groups%2Cuser_interests%2Cuser_likes%2Cuser_location%2Cuser_photos%2Cread_friendlists%2Cpublish_stream', weibologin: 'https://api.weibo.com/oauth2/authorize?client_id=3461279187&redirect_uri=http%3A%2F%2Fwww.jj-lin.com%2Fweibo%2Flogin.aspx&response_type=code&display=default' 
+		//facbooklogin: '<a id="navfblogin" href="https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=http%3A%2F%2Fwww.jjlin-auth.com%2Ffacebook%2FLogin.html&scope=email%2Cuser_about_me%2Cuser_activities%2Cuser_birthday%2Cuser_checkins%2Cuser_groups%2Cuser_interests%2Cuser_likes%2Cuser_location%2Cuser_photos%2Cread_friendlists%2Cpublish_stream"><i class="fa fa-facebook" aria-hidden="true"></i></a>'
+		facbooklogin: '<a id="navfblogin" href="javascript:void(0)"><i class="fa fa-facebook" aria-hidden="true"></i></a>',
+		weibologin: 'https://api.weibo.com/oauth2/authorize?client_id=3461279187&redirect_uri=http%3A%2F%2Fwww.jj-lin.com%2Fweibo%2Flogin.aspx&response_type=code&display=default'
+	};
+	$('.menubox .topbox .accountbox .accountlist').append(template(context));
+
+	$(document).on('click', '#navfblogin,#dialogfblogin', function () {
+		//FbLogin()
+		//location.href='https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=http%3A%2F%2Fwww.jjlin-auth.com%2Ffacebook%2FLogin.html&scope=email%2Cuser_about_me%2Cuser_activities%2Cuser_birthday%2Cuser_checkins%2Cuser_groups%2Cuser_interests%2Cuser_likes%2Cuser_location%2Cuser_photos%2Cread_friendlists%2Cpublish_stream'
+		//location.href = 'https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=http%3A%2F%2Fwww.jjlin-auth.com%2Ffacebook%2FLogin.html&scope=email';
+		location.href = 'https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=https%3A%2F%2Fwww.jjlin.com%2Ffacebook%2FLogin.html&scope=email';
+	});
+};
+function FbLogin() {
+	FB.login(function (response) {
+		if (response.authResponse) {
+			location.href = 'https://www.jjlin-auth.com/facebook/Login.ashx?access_token=' + response.authResponse.accessToken;
+		} else {
+			console.log('User cancelled login or did not fully authorize.');
+		}
+	}, { scope: 'email,public_profile,user_friends' });
+};
+window.fbAsyncInit = function () {
+	FB.init({
+		appId: '481437848637853',
+		cookie: true,
+		xfbml: true,
+		version: 'v3.1'
+	});
+	FB.AppEvents.logPageView();
+
+	// Place additional code below here after FB.init call.
+	// To do...
+};
+(function (d, s, id) {
+	var js, fjs = d.getElementsByTagName(s)[0];
+	if (d.getElementById(id)) { return; }
+	js = d.createElement(s); js.id = id;
+	js.src = "//connect.facebook.net/en_US/sdk.js";
+	fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+function accountboxdetail() {
+	var source = $("#accountdeatil").html();
+	var template = Handlebars.compile(source);
+	var context = { name: 'Luke' };
+	$('.menubox .topbox .accountbox .accountlist').append(template(context));
+};
+function footer() {
+	var source = $("#footer").html();
+	var template = Handlebars.compile(source);
+	var context = {
+		one: 'Copyright © 傑聯邦國際有限公司, All Rights Reserved, 本站由「<a href="http://www.jfetek.com/" target="_blank" style="padding:0;">傑飛特科技</a>」負責製作、管理與維護<a href="http://www.jfetek.com/" target="_blank" style="padding:0;">powered by JFETEK</a>',
+		two: '隱私權說明',
+		three: ' | ',
+		four: '聯絡我們'
+	};
+	$('footer').html(template(context));
+};
+$(function () {
+	footer();
+	accountboxdetail();
+	accountbox();
+	navbar();
+	logintext();
+});
+$(document).on('click', '.menubox .topbox .menurwd button', function () {
+	$('.menubox .topbox .accountbox').toggleClass('block');
+	$('.menubox .topbox .logobox').toggleClass('none');
+	$('.news').toggleClass('none');
+	$('.dynamic').toggleClass('none');
+	$('.bannerbottom').toggleClass('none');
+	$('.slider').toggleClass('none');
+	$('section.menubox.banner.index .imgslider').toggleClass('none');
+	$('footer').toggleClass('none');
+});
+$(document).on('click', 'section.content', function () {
+	$('.menubox .topbox .accountbox.block').removeClass('block');
+	$('.menubox .topbox .logobox').removeClass('none');
+});
+$(document).on('click', '#login', function () {
+	var html = '<div class="container-fluid">' +
+        '<div class="row">' +
+        '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                            '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                            '<h3><span class="en">LOGIN</span><span class="cht">登入</span></h3>' +
+                        '</div>' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                            '<ul class="col-md-12 col-sm-12 col-xs-12 nopadding inputlist">' +
+                                '<li class="col-md-6 col-sm-12 col-xs-12 nopadding">' +
+                                    '<div class="titletext"><span>帳號</span></div>' +
+                                    '<div class="input"><input type="text" id="dialogaccount" name="account" class="form-control" placeholder="請輸入註冊的Email帳號" value="" /></div>' +
+                                '</li>' +
+                                '<li class="col-md-6 col-sm-12 col-xs-12 nopadding">' +
+                                    '<div class="titletext"><span>密碼</span></div>' +
+                                    '<div class="input">' +
+                                        '<input type="password" id="dialogpassword" name="password" class="form-control" placeholder="請輸入密碼" value="" />' +
+										'<a href="' + TmpUrl + 'member/forgetpassword.html" style="text-decoration:underline;color:#4d6299;">忘記密碼?</a>' +
+                                    '</div>' +
+                                '</li>' +
+                            '</ul>' +
+                        '</div>' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 nopadding btnbox">' +
+                            '<a href="javascript:void(0)" id="dialoglogin">登入</a>' +
+                        '</div>' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 nopadding orbox text-center">' +
+                            '<div class="linebox"><div class="line"></div></div><div class="titletext"><span>OR</span></div>' +
+                        '</div>' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 nopadding socialloginbox text-center">' +
+                            '<div class="col-md-6 col-sm-6 col-xs-12 nopadding facebookbox">' +
+                                //'<a id="dialogfblogin" href="https://www.facebook.com/dialog/oauth?client_id=481437848637853&response_type=token&redirect_uri=http%3A%2F%2Fwww.jjlin-auth.com%2Ffacebook%2FLogin.html&scope=email%2Cuser_about_me%2Cuser_activities%2Cuser_birthday%2Cuser_checkins%2Cuser_groups%2Cuser_interests%2Cuser_likes%2Cuser_location%2Cuser_photos%2Cread_friendlists%2Cpublish_stream">' +
+								'<a id="dialogfblogin" href="javascript:void(0)"><div class="facebook"><i class="fa fa-facebook"></i></div><div class="facebookbtn"><span>使用Facebook登入</span></div></a>' +
+                            '</div>' +
+                            '<div class="col-md-6 col-sm-6 col-xs-12 nopadding weibobox">' +
+                                '<a href="https://api.weibo.com/oauth2/authorize?client_id=3461279187&redirect_uri=http%3A%2F%2Fwww.jj-lin.com%2Fweibo%2Flogin.aspx&response_type=code&display=default"><div class="weibo"><i class="fa fa-weibo"></i></div><div class="weibobtn"><span>使用Weibo登入</span></div></a>' +
+                            '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                    '</div>';
+	bootbox.dialog({
+		message: html,
+		title: '',
+		buttons: {
+			success: {
+				label: "確定",
+				className: "btn-success",
+				callback: function () { }
+			}
+		}
+	});
+	$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+	$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+	$('.modal-footer').css({ 'display': 'none' });
+});
+$(document).on('click', '#dialoglogin', function () {
+	$('button.close').click();
+	var tmpaccount = $('input[name="account"]#dialogaccount').val();
+	var tmppassword = $('input[name="password"]#dialogpassword').val();
+	if (!tmpaccount || !tmppassword) {
+		dialogreturnfalse('請輸入帳號密碼!');
+	} else {
+		$.ajax({
+			url: ServerSiteUrl + "/Ajax/Login.ashx",
+			data: {
+				'acc': tmpaccount,
+				'pwd': tmppassword,
+			},
+			type: 'GET',
+			dataType: AjaxDataType,
+			success: function (data) {
+				if (data && data.ok) {
+					var html = '<div class="container-fluid">' +
+                    '<div class="row">' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                                '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                                '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                            '</div>' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                                '<ul class="col-md-12 col-sm-12 col-xs-12 nopadding inputlist">' +
+                                    '<li class="col-md-12 col-sm-12 col-xs-12 nopadding single">' +
+                                        '<span>登入成功!</span>' +
+                                    '</li>' +
+                                '</ul>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+					bootbox.dialog({
+						message: html,
+						title: '',
+						buttons: {
+							success: {
+								label: "確定",
+								className: "btn-success",
+								callback: function () {
+									logintextdialog();
+									var tmpvip = getParameterByName('login');
+									if (tmpvip == 'viplogin') {
+										location.href = TmpUrl + 'vip/vip_diary.html';
+									} else {
+										location.href = TmpUrl + 'member/member_edit.html';
+									}
+								}
+							},
+							onEscape: function () {
+								var tmpvip = getParameterByName('login');
+								if (tmpvip == 'viplogin') {
+									location.href = TmpUrl + 'vip/vip_diary.html';
+								} else {
+									location.href = TmpUrl + 'member/member_edit.html';
+								}
+							}
+						}
+					});
+
+					$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+					$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+					$('.modal-footer').css({ 'display': 'none' });
+				} else if (data && data.msg) {
+					dialog(data.msg)
+				} else {
+					dialog('伺服器錯誤，請聯絡系統工程師!');
+				}
+			},
+			error: function (errorData) {
+				dialog('網路傳輸錯誤，請聯絡系統工程師!');
+			}
+		});
+	}
+});
+$(document).on('click', '#logout', function () {
+	$.ajax({
+		url: ServerSiteUrl + 'Ajax/Logout.ashx?&_=' + new Date().getTime(),
+		type: "GET",
+		dataType: AjaxDataType,
+		timeout: 15000,
+		success: function (res) {
+			if (res.ok == true) {
+				location.assign(TmpUrl);
+			} else {
+				alertify.alert(document.title, '登出錯誤，請聯繫客服');
+			}
+		},
+		error: function (xhr, ajaxOptions, thrownError) {
+			//alert(xhr.status); 
+			//alert(thrownError); 
+		}
+	});
+});
+
+$(document).on('click', '.menubox .topbox .accountbox .accountlist li#logoutbox .img', function () {
+	location.href = TmpUrl + 'member/member.html';
+});
+
+/*********************************
+*取得圖片名稱
+**********************************/
+String.prototype.filename = function (extension) {
+	var s = this.replace(/\\/g, '/');
+	s = s.substring(s.lastIndexOf('/') + 1);
+	return extension ? s.replace(/[?#].+$/, '') : s.split('.')[0];
+}
+
+/*********************************
+ *右鍵下載阻擋
+ **********************************/
+if (location.pathname.indexOf('vip/photodetail.html') < 0) {
+	document.oncontextmenu = document.body.oncontextmenu = function () {
+		return false;
+	};
+};
+
+/*********************************
+ *Google Analytics
+ **********************************/
+(function (i, s, o, g, r, a, m) {
+	i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+		(i[r].q = i[r].q || []).push(arguments)
+	}, i[r].l = 1 * new Date(); a = s.createElement(o),
+    m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+})(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+ga('create', 'UA-768067-12', 'auto');
+ga('send', 'pageview');
+
+function logintext() {
+	$.ajax({
+		url: ServerSiteUrl + 'Ajax/Member.ashx?&_=' + new Date().getTime(),
+		type: 'GET',
+		dataType: AjaxDataType,
+		success: function (data) {
+			var tmpLi = $('.menubox .topbox .accountbox .accountlist li');
+			if (data.msg == '請先登入！') {
+				$('#logoutbox').remove();
+				tmpLi.css('display', 'inline-block');
+			} else {
+				//$('.menubox .topbox .accountbox .accountlist li').css('display', 'none');
+				//$('.menubox .topbox .accountbox .accountlist li#logoutbox').css('display', 'block');
+				//$('.menubox .topbox .accountbox .accountlist li#logoutbox #name').html(data.result.surname);
+				//$('.menubox .topbox .accountbox .accountlist li#logoutbox .img').css('background-image', 'url(' + data.result.graph + ')');
+				tmpLi.css('display', 'none');
+				tmpLi.parent().find('#logoutbox').css('display', 'block');
+				tmpLi.parent().find('#logoutbox  #name').html(data.result.surname);
+				tmpLi.parent().find('#logoutbox  .img').css('background-image', 'url(' + data.result.graph + ')');
+			}
+		},
+		error: function (errorData) {
+			dialog('網路傳輸錯誤，請聯絡系統工程師!');
+		}
+	});
+};
+function dialog(datastring) {
+	var html = '<div class="container-fluid">' +
+                    '<div class="row">' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                                '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                                '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                            '</div>' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                                '<p style="margin:15px 0;">' + datastring + '</p>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+	bootbox.dialog({
+		message: html,
+		title: '',
+		buttons: {
+			success: {
+				label: "確定",
+				className: "btn-success",
+				callback: function () { }
+			},
+			onEscape: function () {
+				window.location.href = TmpUrl;
+			}
+		}
+	});
+	$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+	$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+	$('.modal-footer').css({ 'display': 'none' });
+};
+function dialogreturnfalse(datastring) {
+	var html = '<div class="container-fluid">' +
+                    '<div class="row">' +
+                        '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                                '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                                '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                            '</div>' +
+                            '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                                '<p style="margin:15px 0;">' + datastring + '</p>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+	bootbox.dialog({
+		message: html,
+		title: '',
+		buttons: {
+			success: {
+				label: "確定",
+				className: "btn-success",
+				callback: function () { }
+			},
+			onEscape: function () { }
+		}
+	});
+	$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+	$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+	$('.modal-footer').css({ 'display': 'none' });
+};
+function dialogreload(datastring) {
+	var html = '<div class="container-fluid">' +
+        '<div class="row">' +
+            '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                    '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                    '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                '</div>' +
+                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                    '<p style="margin:15px 0;">' + datastring + '</p>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+	bootbox.dialog({
+		message: html,
+		title: '',
+		buttons: {
+			success: {
+				label: "確定",
+				className: "btn-success",
+				callback: function () { }
+			},
+			onEscape: function () { location.reload(); }
+		}
+	});
+	$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+	$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+	$('.modal-footer').css({ 'display': 'none' });
+};
+function deletepassword() {
+	$.ajax({
+		url: ServerSiteUrl + "/Ajax/Member/InfoDetail.ashx?&_=" + (new Date()).getTime(),
+		type: 'GET',
+		dataType: 'jsonp',
+		success: function (data) {
+			if (data.result.SocialNetwork == '1') {
+				$('.linkbox ul li[data-id="3"]').remove();
+			} else if (data.result.SocialNetwork == '2') {
+				$('.linkbox ul li[data-id="3"]').remove();
+			}
+		},
+		error: function (errorData) {
+			alertify.alert('JJ 林俊傑 官方網站', '網路傳輸錯誤，請聯絡系統工程師!').set('onok', function () {
+				window.location.href = ServerSiteUrl;
+			});
+		}
+	});
+};
+function setCookie(cname, cvalue, exdays) {
+	var d = new Date();
+	d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+	var expires = "expires=" + d.toUTCString();
+	document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+};
+function getCookie(cname) {
+	var name = cname + "=";
+	var decodedCookie = decodeURIComponent(document.cookie);
+	var ca = decodedCookie.split(';');
+	for (var i = 0; i < ca.length; i++) {
+		var c = ca[i];
+		while (c.charAt(0) == ' ') {
+			c = c.substring(1);
+		}
+		if (c.indexOf(name) == 0) {
+			return c.substring(name.length, c.length);
+		}
+	}
+	return "";
+};
+function checkCookie() {
+	var user = getCookie("username");
+	if (user > 2) {
+		console.log('');
+	} else if (user <= 2) {
+		if (user != "" && user != null) {
+			user = parseInt(user) + 1;
+			setCookie("username", user, 7);
+		} else {
+			setCookie("username", 1, 7);
+		}
+
+		var html = '<div class="container-fluid">' +
+        '<div class="row">' +
+            '<div class="col-md-12 col-sm-12 col-xs-12 text-center formbox">' +
+                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding title">' +
+                    '<img src="' + TmpUrl + 'assets/images/logo.png" alt="" />' +
+                    '<h3><span class="en">JJ Lin OFFICIAL WEBSITE</span></h3>' +
+                '</div>' +
+                '<div class="col-md-12 col-sm-12 col-xs-12 nopadding inputbox">' +
+                    '<p style="margin: 15px 0;">*請注意*本網站、若未經授權即複製、轉載、散佈「VIP會員專區」之影音、圖片、會員刊物……等任何會員獨家享有資訊之行為，使得立即終止會員資格，並請自負法律責任。</p>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+		bootbox.dialog({
+			message: html,
+			title: '',
+			buttons: {
+				success: {
+					label: "確定",
+					className: "btn-success",
+					callback: function () { }
+				},
+				onEscape: function () { }
+			}
+		});
+		$('.modal-header').css({ 'position': 'absolute', 'top': '0', 'right': '0', 'z-index': '9', 'width': '100%', 'border-bottom': 'none' });
+		$('button.close').html('<img src="' + TmpUrl + 'assets/images/close-dialog.png" alt="關閉視窗" />').css({ 'margin-top': '0', 'position': 'absolute', 'z-index': '9', 'right': '15px', 'top': '15px' });
+		$('.modal-footer').css({ 'display': 'none' });
+	}
+};
+function logintextdialog() {
+	var user = getCookie("username");
+	if (user != "" && user != null) {
+		user = parseInt(user) + 1;
+		setCookie("username", user, 7);
+	} else {
+		setCookie("username", 1, 7);
+	}
+};
+function beforeHappyBirthday() {
+	bootbox.dialog({
+		message: '<p style="margin:15px 0;">Dear 林距離 :<br />有一份專屬於您的生日禮物<br/>請戴上耳機後按撥放鍵<br />領取您的禮物:)</p>',
+		title: document.title,
+		buttons: {
+			want: {
+				label: '已戴上耳機',
+				className: 'want',
+				callback: function () {
+					if (getCookie('ihave') == '' || !getCookie('ihave')) {
+						happyBirthday();
+					} else {
+						mistake();
+					};
+				}
+			}, onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function happyBirthday() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent01.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			want: {
+				label: '想',
+				className: 'want',
+				callback: function () {
+					want();
+				}
+			},
+			noway: {
+				label: '不想',
+				className: 'noway',
+				callback: function () { }
+			}, onEscape: function () { }
+		}
+	});
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function want() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent02.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			want: {
+				label: '好',
+				className: 'want',
+				callback: function () {
+					beforefirst()
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function beforefirst() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent03.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			guiter: {
+				label: '下一步',
+				className: 'guiter',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						firstprocess();
+					} else {
+						mistake();
+					}
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function firstprocess() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/guitar.wav" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			guiter: {
+				label: '吉他',
+				className: 'guiter',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						firstbingo();
+					} else {
+						mistake();
+					}
+				}
+			},
+			piano: {
+				label: '鋼琴',
+				className: 'piano',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			violin: {
+				label: '小提琴',
+				className: 'violin',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			bass: {
+				label: 'Bass',
+				className: 'bass',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function mistakeonce() {
+	setCookie('ihave', 'cache', 1800 / 86400);
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/Birthdaymistake01.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '確定',
+				className: 'guiter',
+				callback: function () { }
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function mistake() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/Birthdaymistake02.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '確定',
+				className: 'guiter',
+				callback: function () { }
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function firstbingo() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent04.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '那再來一題',
+				className: 'guiter',
+				callback: function () {
+					beforesecondprocess();
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function beforesecondprocess() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent05.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div><br />',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '下一步',
+				className: 'guiter',
+				callback: function () {
+					secondprocess();
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function secondprocess() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/re.wav" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			domusic: {
+				label: 'Do',
+				className: 'Do',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			remusic: {
+				label: 'Re',
+				className: 'Re',
+				callback: function () {
+					secondbingo();
+				}
+			},
+			mimusic: {
+				label: 'Mi',
+				className: 'Mi',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function secondbingo() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent06.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '最後一題~',
+				className: 'guiter',
+				callback: function () {
+					beforethirdprocess();
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function beforethirdprocess() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent07.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '下一步',
+				className: 'guiter',
+				callback: function () {
+					thirdprocess();
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function thirdprocess() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/continue.wav" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			music: {
+				label: '我繼續',
+				className: 'music',
+				callback: function () {
+					thirdbingo()
+				}
+			},
+			musictwo: {
+				label: '剪云者',
+				className: 'music',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			musicthree: {
+				label: '黑夜問白天',
+				className: 'music',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			musicfour: {
+				label: '小瓶子',
+				className: 'music',
+				callback: function () {
+					if (!getCookie('ihave')) {
+						mistakeonce();
+					} else {
+						mistake();
+					}
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function thirdbingo() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent08.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			success: {
+				label: '下一步',
+				className: 'guiter',
+				callback: function () {
+					four();
+				}
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};
+function four() {
+	bootbox.dialog({
+		message: '<p>　</p>' +
+		'<div id="audio01">' +
+			'<audio controls>' +
+				'<source src="' + ServerSiteUrl + 'assets/BirthdayPresent/BirthdayPresent09.mp3" type="audio/mpeg">Your browser does not support the audio element.' +
+			'</audio>' +
+		'</div>',
+		title: document.title,
+		buttons: {
+			music: {
+				label: '謝謝',
+				className: 'music',
+				callback: function () { }
+			},
+			onEscape: function () { }
+		}
+	});
+
+	$('button[data-bb-handler="onEscape"]').css({ 'display': 'none' });
+	$('.modal-header').remove();
+	$('.modal-title').css({ 'text-align': 'center' });
+	$('.modal-body').css({ 'text-align': 'center' }).find('.bootbox-body').css({ 'margin': '0' });
+};

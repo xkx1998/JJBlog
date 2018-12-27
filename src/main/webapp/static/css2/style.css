@@ -1,0 +1,121 @@
+﻿/**************************
+BASE 
+**************************/
+body { line-height: 1.4; color: #54595d; word-break: break-all; height: 100%;font-size:62.5%; /* 10÷16=62.5% */ font-family: FreeSans,Arimo,"微軟正黑體","Droid Sans",Arial,Helvetica,sans-serif,"Microsoft JhengHei";}
+ul{list-style:none; padding:0; margin:0;}
+li{list-style:none; padding:0; margin:0;}
+@media (max-width: 1200px) {body { font-size: 1.3rem; }}
+@media (max-width: 768px) {body { font-size: 1.2rem; }}
+@media (max-width: 480px) {body { font-size: 1rem; }}
+p {text-indent: 2em; }
+
+select{width:100%; padding:1rem 0;margin:0;background:#fff;color:#888;border:none;cursor:pointer;border:1px solid #ddd;}
+input{width:100%; padding:1rem; margin:0;background:#fff;color:#888;border:none;cursor:pointer;border:1px solid #ddd;}
+
+
+
+/**************************
+Custom  
+**************************/
+.txtrt{text-align:right;}
+.txtlt{text-align:left;}
+.txtct{text-align:center;}
+.pull-center{margin:0px auto;}
+.pull-right{float:right}
+.pull-left{float:left}
+.nopadding{padding:0;}
+.nomargin{margin:0;}
+.noflaot{float:none;}
+.clearfix{display:block; width:100%; height:1px; float:none; clear:both; padding:0; margin:0;}
+.hide{display:none}
+.show{display:block}
+.invisible{visibility:hidden}
+.affix{position:fixed;}
+.bline{border-bottom:1px solid #ccc; padding:1rem;}
+
+.offsetL070{margin-left:70%;}
+.offsetL060{margin-left:60%;}
+.offsetL050{margin-left:50%;}
+.offsetL045{margin-left:45%;}
+.offsetL040{margin-left:40%;}
+.offsetL035{margin-left:35%;}
+.offsetL030{margin-left:30%;}
+.offsetL025{margin-left:25%;}
+.offsetL020{margin-left:20%;}
+.offsetL015{margin-left:15%;}
+.offsetL010{margin-left:10%;}
+.offsetL009{margin-left:9%;}
+.offsetL008{margin-left:8%;}
+.offsetL0065{margin-left:6.5%;}
+.offsetL005{margin-left:5%;}
+.offsetL004{margin-left:4%;}
+.offsetL003{margin-left:3%;}
+.offsetL002{margin-left:2%;}
+.offsetL0005{margin-left:0.5%;}
+
+
+.offsetR070{margin-right:70%;}
+.offsetR060{margin-right:60%;}
+.offsetR050{margin-right:50%;}
+.offsetR045{margin-right:45%;}
+.offsetR040{margin-right:40%;}
+.offsetR035{margin-right:35%;}
+.offsetR030{margin-right:30%;}
+.offsetR025{margin-right:25%;}
+.offsetR020{margin-right:20%;}
+.offsetR015{margin-right:15%;}
+.offsetR010{margin-right:10%;}
+.offsetR005{margin-right:5%;}
+
+.offsetT070{margin-top:70%;}
+.offsetT060{margin-top:60%;}
+.offsetT050{margin-top:50%;}
+.offsetT045{margin-top:45%;}
+.offsetT040{margin-top:40%;}
+.offsetT035{margin-top:35%;}
+.offsetT030{margin-top:30%;}
+.offsetT025{margin-top:25%;}
+.offsetT020{margin-top:20%;}
+.offsetT015{margin-top:15%;}
+.offsetT010{margin-top:10%;}
+.offsetT008{margin-top:8%;}
+.offsetT005{margin-top:5%;}
+.offsetT004{margin-top:4%;}
+.offsetT002{margin-top:2%;}
+.offsetT001{margin-top:1%;}
+.offsetT000{margin-top:0;}
+
+.offsetB070{margin-bottom:70%;}
+.offsetB060{margin-bottom:60%;}
+.offsetB050{margin-bottom:50%;}
+.offsetB045{margin-bottom:45%;}
+.offsetB040{margin-bottom:40%;}
+.offsetB035{margin-bottom:35%;}
+.offsetB030{margin-bottom:30%;}
+.offsetB025{margin-bottom:25%;}
+.offsetB020{margin-bottom:20%;}
+.offsetB015{margin-bottom:15%;}
+.offsetB010{margin-bottom:10%;}
+.offsetB005{margin-bottom:5%;}
+.offsetB002{margin-bottom:2%;}
+.offsetB000{margin-bottom:0;}
+
+.offsetTB070{margin-top:70%; margin-bottom:70%;}
+.offsetTB060{margin-top:60%; margin-bottom:60%;}
+.offsetTB050{margin-top:50%; margin-bottom:50%;}
+.offsetTB045{margin-top:45%; margin-bottom:45%;}
+.offsetTB040{margin-top:40%; margin-bottom:40%;}
+.offsetTB035{margin-top:35%; margin-bottom:35%;}
+.offsetTB030{margin-top:30%; margin-bottom:30%;}
+.offsetTB025{margin-top:25%; margin-bottom:25%;}
+.offsetTB020{margin-top:20%; margin-bottom:20%;}
+.offsetTB015{margin-top:15%; margin-bottom:15%;}
+.offsetTB010{margin-top:10%; margin-bottom:10%;}
+.offsetTB005{margin-top:5%; margin-bottom:5%;}
+.offsetTB002{margin-top:2%; margin-bottom:2%;}
+.offsetTB000{margin-top:0; margin-bottom:0;}
+
+.paddingRL000{padding-right:0;padding-left:0;}
+.padding05{padding:5%;}
+.paddingL02{padding-left: 2%;}
+.wrap{word-wrap:break-word; width:880px;}

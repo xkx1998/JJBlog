@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        ">
+
+    <!--
+    1、配置securityManager
+    -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="cacheManager" ref="cacheManager"/>
+        <property name="authenticator" ref="authenticator"/>
+
+        <property name="realms">
+            <list>
+                <ref bean="jdbcRealm"/>
+            </list>
+        </property>
+    </bean>
+    <!-- 开启shiro框架注解支持 -->
+    <bean id="defaultAdvisorAutoProxyCreator"
+          class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator">
+        <!-- 必须使用cglib方式为Action对象创建代理对象 -->
+        <property name="proxyTargetClass" value="true"/>
+    </bean>
+    <!-- 配置shiro框架提供的切面类，用于创建代理对象 -->
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor"/>
+
+    <!--
+    2、配置cacheManager
+    2.1、需要配置ehcache的jar包和配置文件
+
+    -->
+    <bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+        <property name="cacheManagerConfigFile" value="classpath:config/spring/ehcache.xml"/>
+    </bean>
+
+    <!--多Realm验证-->
+    <bean id="authenticator" class="org.apache.shiro.authc.pam.ModularRealmAuthenticator">
+        <!--认证策略-->
+        <property name="authenticationStrategy">
+            <bean class="org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy"></bean>
+        </property>
+    </bean>
+    <!--
+    3、配置jdbcRealm
+    3、直接实现了
+    -->
+    <bean id="jdbcRealm" class="cn.xkx.ssm.realms.ShiroRealm">
+        <property name="credentialsMatcher">
+            <bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+                <property name="hashAlgorithmName" value="MD5"></property>
+                <property name="hashIterations" value="2"></property>
+            </bean>
+        </property>
+    </bean>
+
+
+    <!--6、配置shiroFilter，id必须和web.xml文件中配置的DelegatingFilterProxy的filter-name值一致
+    -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="loginUrl" value="/jsps/user/login.jsp"/>
+        <property name="successUrl" value="/user.jsp"/>
+        <property name="unauthorizedUrl" value="/unknown.jsp"/>
+        <property name="filterChainDefinitionMap" ref="filterChainDefinitionMap"/>
+        <!--
+        配置哪些页面需要受保护，
+        以及访问这些页面需要的权限
+        anon：可以被匿名访问
+        authc:需要被认证后才能被访问页面
+        logout:登出
+        -->
+
+        <!--
+        <property name="filterChainDefinitions">
+            <value>
+                /login.jsp = anon
+                /shiro/login = anon
+                /shiro/logout = logout
+                /user.jsp = roles[user]
+                /admin.jsp = roles[admin]
+                /** = authc
+            </value>
+        </property>
+        -->
+    </bean>
+
+    <!--配置一个bean，该bean实际上是一个map，通过实例工厂方法的方式-->
+    <bean id="filterChainDefinitionMap" factory-bean="filterChainDefinitionMapBuilder" factory-method="buildFilterChainDefinitionMap"></bean>
+    <bean id ="filterChainDefinitionMapBuilder" class="cn.xkx.ssm.filter.FilterChainDefinitionMapBuilder">
+    </bean>
+</beans>
