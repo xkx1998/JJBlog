@@ -6,6 +6,6 @@
 后端框架：spring+springmvc+mybatis
 数据库：mysql
 安全权限：shiro
-搜索：solo
+搜索：solr
 缓存：redis
 暂时就那么多
